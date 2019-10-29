@@ -29,7 +29,12 @@ func main() {
 	wk.Init()
 	defer wk.Destroy()
 
-	converter, err := wk.NewConverter(nil)
+	converter, err := wk.NewConverter(
+		&wk.Config{
+			Quality:          100,
+			Fmt:              "png",
+			EnableJavascript: false,
+		})
 	if err != nil {
 		log.Fatal(err)
 	}

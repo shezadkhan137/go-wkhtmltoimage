@@ -113,15 +113,9 @@ type Converter struct {
 
 // NewConverter returns a new converter instance.
 func NewConverter(config *Config) (*Converter, error) {
-	if config == nil {
-		// TODO sane defaults?
-		config = &Config{
-			Quality:          100,
-			Fmt:              "png",
-			EnableJavascript: false,
-		}
+    if config == nil {
+		return nil, errors.New("config cannot be nil")
 	}
-
 	return &Converter{
 		config: config,
 	}, nil
