@@ -13,9 +13,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"unsafe"
 )
+
+// ErrNotHTML might be returned from RunOnHTMLFragment function to indicate that input is not in HTML format
+var ErrNotHTML = errors.New("given input is not in HTML format")
 
 type Config struct {
 
@@ -113,15 +117,21 @@ type Converter struct {
 
 // NewConverter returns a new converter instance.
 func NewConverter(config *Config) (*Converter, error) {
-    if config == nil {
+	if config == nil {
 		return nil, errors.New("config cannot be nil")
 	}
+
+	if err := Init(); err != nil {
+		return nil, fmt.Errorf("failed to initialize wkhtmltoimage library: %w", err)
+	}
+
 	return &Converter{
 		config: config,
 	}, nil
 }
 
 // Run executes the conversion and copies the output to the provided writer.
+// Make sure to call Flush() on the writer after call to this function.
 func (c *Converter) Run(input string, w io.Writer) error {
 	if w == nil {
 		return errors.New("the provided writer cannot be nil")
@@ -162,10 +172,43 @@ func (c *Converter) Run(input string, w io.Writer) error {
 	}
 
 	// Copy output to the provided writer.
-	buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(output), C.int(size)))
-	if _, err := io.Copy(w, buf); err != nil {
+	buf := bytes.NewReader(C.GoBytes(unsafe.Pointer(output), C.int(size)))
+
+	n, err := buf.WriteTo(w)
+	if err != nil {
 		return err
 	}
 
+	if n < buf.Size() {
+		return errors.New("failed to write full converted file")
+	}
+
 	return nil
+}
+
+// RunOnHTMLFragment is a wrapper on Run() method to enable passing text with HTML tags in it for processing.
+// It adds <html>, <head> and <body> if not present.
+// Charset is set to UTF-8.
+// If the given input has no HTML tags in it, ErrNotHTML is returned.
+func (c *Converter) RunOnHTMLFragment(input string, w io.Writer) error {
+	// regex to match html tag
+	// source: https://gist.github.com/g10guang/04f11221dadf1ed019e0d3cf3e82caf3
+	const pattern = `(<\/?[a-zA-A]+?[^>]*\/?>)`
+	r := regexp.MustCompile(pattern)
+	hasHTMLTags := r.Match([]byte(input))
+	if !hasHTMLTags {
+		return ErrNotHTML
+	}
+
+	if !strings.HasPrefix(input, "<html") {
+		if !strings.HasPrefix(input, "<head>") {
+			if !strings.HasPrefix(input, "<body>") {
+				input = `<body>` + input + `</body>`
+			}
+			input = `<head><meta charset="UTF-8"></head>` + input
+		}
+		input = `<html lang="en">` + input + `</html>`
+	}
+
+	return c.Run(input, w)
 }
