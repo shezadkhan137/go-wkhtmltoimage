@@ -18,6 +18,7 @@ import (
 	"unsafe"
 )
 
+// ErrNotHTML might be returned from RunOnHTMLFragment function to indicate that input is not in HTML format
 var ErrNotHTML = errors.New("given input is not in HTML format")
 
 type Config struct {
@@ -130,6 +131,7 @@ func NewConverter(config *Config) (*Converter, error) {
 }
 
 // Run executes the conversion and copies the output to the provided writer.
+// Make sure to call Flush() on the writer after call to this function.
 func (c *Converter) Run(input string, w io.Writer) error {
 	if w == nil {
 		return errors.New("the provided writer cannot be nil")
@@ -184,6 +186,10 @@ func (c *Converter) Run(input string, w io.Writer) error {
 	return nil
 }
 
+// RunOnHTMLFragment is a wrapper on Run() method to enable passing text with HTML tags in it for processing.
+// It adds <html>, <head> and <body> if not present.
+// Charset is set to UTF-8.
+// If the given input has no HTML tags in it, ErrNotHTML is returned.
 func (c *Converter) RunOnHTMLFragment(input string, w io.Writer) error {
 	// regex to match html tag
 	// source: https://gist.github.com/g10guang/04f11221dadf1ed019e0d3cf3e82caf3
