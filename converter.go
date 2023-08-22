@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"unsafe"
 )
@@ -113,9 +114,14 @@ type Converter struct {
 
 // NewConverter returns a new converter instance.
 func NewConverter(config *Config) (*Converter, error) {
-    if config == nil {
+	if config == nil {
 		return nil, errors.New("config cannot be nil")
 	}
+
+	if err := Init(); err != nil {
+		return nil, fmt.Errorf("failed to initialize wkhtmltoimage library: %w", err)
+	}
+
 	return &Converter{
 		config: config,
 	}, nil
@@ -168,4 +174,32 @@ func (c *Converter) Run(input string, w io.Writer) error {
 	}
 
 	return nil
+}
+
+func (c *Converter) RunOnHTMLFragment(input string, w io.Writer) error {
+	if input == "" {
+		return errors.New("input is empty")
+	}
+
+	hasHTMLTags, err := regexp.Match(`<\s*([^ >]+)[^>]*>.*?<\s*/\s*\1\s*>`, []byte(input))
+	if err != nil {
+		// we will assume that it is HTML
+		hasHTMLTags = true
+	} else if !hasHTMLTags {
+		// if it doesn't have HTML tags, it's a plain text,
+		// we need wrap it in <p> for the wkhtmltoimage to process it correctly
+		input = `<p>` + input + `</p>`
+	}
+
+	if !strings.HasPrefix(input, "<html>") {
+		if !strings.HasPrefix(input, "<head>") {
+			if !strings.HasPrefix(input, "<body>") {
+				input = `<body>` + input + `</body>`
+			}
+			input = `<head></head>` + input
+		}
+		input = `<html>` + input + `</html>`
+	}
+
+	return c.Run(input, w)
 }
