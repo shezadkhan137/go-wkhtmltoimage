@@ -171,9 +171,15 @@ func (c *Converter) Run(input string, w io.Writer) error {
 	}
 
 	// Copy output to the provided writer.
-	buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(output), C.int(size)))
-	if _, err := io.Copy(w, buf); err != nil {
+	buf := bytes.NewReader(C.GoBytes(unsafe.Pointer(output), C.int(size)))
+
+	n, err := buf.WriteTo(w)
+	if err != nil {
 		return err
+	}
+
+	if n < buf.Size() {
+		return errors.New("failed to write full converted file")
 	}
 
 	return nil
