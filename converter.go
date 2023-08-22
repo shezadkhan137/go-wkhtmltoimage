@@ -19,7 +19,6 @@ import (
 )
 
 var ErrNotHTML = errors.New("given input is not in HTML format")
-var ErrInvalidInput = errors.New("given input will generate invalid output")
 
 type Config struct {
 

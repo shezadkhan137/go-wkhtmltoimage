@@ -10,59 +10,6 @@ import (
 	"github.com/shezadkhan137/go-wkhtmltoimage"
 )
 
-func TestConverterRunOnHTMLFragmentLimitations(t *testing.T) {
-
-	cfg := &wkhtmltoimage.Config{
-		LoadImages:       false,
-		EnableJavascript: false,
-		Fmt:              "jpeg",
-	}
-	c, err := wkhtmltoimage.NewConverter(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// following inputs produce empty output
-	testcases := []struct {
-		Name  string
-		Input string
-	}{
-		{
-			Name:  "ShortParagraph",
-			Input: `<p>I won't work</p>`,
-		},
-		{
-			Name:  "TwoParagraphs",
-			Input: `<p></p><p></p>`,
-		},
-		{
-			Name:  "OneStrongParagraph",
-			Input: `<p><strong>s<strong></p>`,
-		},
-		{
-			Name:  "LineBreak",
-			Input: `<p><br></p>`,
-		},
-	}
-
-	for _, tc := range testcases {
-		byteBuf := new(bytes.Buffer)
-		out := bufio.NewWriter(byteBuf)
-
-		if err := c.RunOnHTMLFragment(tc.Input, out); err != nil {
-			t.Fatal(err, tc.Name)
-		}
-
-		if out.Size() <= 0 {
-			t.Fatal("size of writer should be set to a valid value, despite buffer being empty")
-		}
-
-		if byteBuf.Len() > 0 {
-			t.Fatal("it worked, we expected it to be 0")
-		}
-	}
-}
-
 func TestConverterRunOnHTMLFragment(t *testing.T) {
 	cfg := &wkhtmltoimage.Config{
 		LoadImages:       false,
@@ -91,6 +38,22 @@ func TestConverterRunOnHTMLFragment(t *testing.T) {
 			Input: `<body><p>Hello, this is me.</p><p>Please be kind to me.</p></body>`,
 		},
 		{
+			Name:  "ShortParagraph",
+			Input: `<p>I work hard</p>`,
+		},
+		{
+			Name:  "TwoParagraphs",
+			Input: `<p></p><p></p>`,
+		},
+		{
+			Name:  "OneStrongParagraph",
+			Input: `<p><strong>s<strong></p>`,
+		},
+		{
+			Name:  "LineBreak",
+			Input: `<p><br></p>`,
+		},
+		{
 			Name:  "Hyperlink",
 			Input: `<p><a href="https://orf.at/stories/3327795/" rel="noopener noreferrer" target="_blank">https://orf.at/stories/3327795/</a></p>`,
 		},
@@ -115,6 +78,7 @@ func TestConverterRunOnHTMLFragment(t *testing.T) {
 		if err := c.RunOnHTMLFragment(tc.Input, out); err != nil {
 			t.Fatal(err, tc.Name)
 		}
+		out.Flush()
 
 		if out.Size() <= 0 {
 			t.Fail()
