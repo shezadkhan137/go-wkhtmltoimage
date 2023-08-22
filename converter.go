@@ -18,6 +18,8 @@ import (
 	"unsafe"
 )
 
+var ErrNotHTML = errors.New("given input is not in HTML format")
+
 type Config struct {
 
 	//web configs
@@ -177,18 +179,13 @@ func (c *Converter) Run(input string, w io.Writer) error {
 }
 
 func (c *Converter) RunOnHTMLFragment(input string, w io.Writer) error {
-	if input == "" {
-		return errors.New("input is empty")
-	}
-
-	hasHTMLTags, err := regexp.Match(`<\s*([^ >]+)[^>]*>.*?<\s*/\s*\1\s*>`, []byte(input))
-	if err != nil {
-		// we will assume that it is HTML
-		hasHTMLTags = true
-	} else if !hasHTMLTags {
-		// if it doesn't have HTML tags, it's a plain text,
-		// we need wrap it in <p> for the wkhtmltoimage to process it correctly
-		input = `<p>` + input + `</p>`
+	// regex to match html tag
+	// source: https://gist.github.com/g10guang/04f11221dadf1ed019e0d3cf3e82caf3
+	const pattern = `(<\/?[a-zA-A]+?[^>]*\/?>)`
+	r := regexp.MustCompile(pattern)
+	hasHTMLTags := r.Match([]byte(input))
+	if !hasHTMLTags {
+		return ErrNotHTML
 	}
 
 	if !strings.HasPrefix(input, "<html>") {

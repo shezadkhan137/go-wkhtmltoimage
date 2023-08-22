@@ -3,6 +3,7 @@ package wkhtmltoimage_test
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"os"
 	"testing"
 
@@ -24,10 +25,6 @@ func TestConverterRunOnHTMLFragment(t *testing.T) {
 		Name  string
 		Input string
 	}{
-		{
-			Name:  "PlainText",
-			Input: `Hello, this is me`,
-		},
 		{
 			Name:  "NoHTMLTag",
 			Input: `<head></head><body><p>Hello, this is me</p></body>`,
@@ -66,6 +63,32 @@ func TestConverterRunOnHTMLFragment(t *testing.T) {
 		if _, err := f.Write(byteBuf.Bytes()); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestConverterRunOnHTMLFragmentPlainText(t *testing.T) {
+	cfg := &wkhtmltoimage.Config{
+		LoadImages:       false,
+		EnableJavascript: false,
+		Fmt:              "jpeg",
+	}
+	c, err := wkhtmltoimage.NewConverter(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	byteBuf := new(bytes.Buffer)
+	out := bufio.NewWriter(byteBuf)
+
+	err = c.RunOnHTMLFragment("I'm just a plain text", out)
+	if !errors.Is(err, wkhtmltoimage.ErrNotHTML) {
+		t.Fatal("expected ErrNotHTML, got:", err)
+	}
+
+	// input is empty
+	err = c.RunOnHTMLFragment("", out)
+	if !errors.Is(err, wkhtmltoimage.ErrNotHTML) {
+		t.Fatal("expected ErrNotHTML, got:", err)
 	}
 
 }
