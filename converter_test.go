@@ -26,8 +26,16 @@ func TestConverterRunOnHTMLFragment(t *testing.T) {
 		Input string
 	}{
 		{
-			Name:  "NoHTMLTag",
-			Input: `<head></head><body><p>Hello, this is me</p></body>`,
+			Name:  "MainHTMLTagMissing",
+			Input: `<head/><body><p>Hello, this is me.</p><p>Please be kind to me.</p></body>`,
+		},
+		{
+			Name:  "HeadAndBodyTagsMissing",
+			Input: `<p>Hello, this is me.</p><p>Please be kind to me.</p>`,
+		},
+		{
+			Name:  "BodyTagWithHeadTagMissing",
+			Input: `<body><p>Hello, this is me.</p><p>Please be kind to me.</p></body>`,
 		},
 		{
 			Name:  "FontFormatting",

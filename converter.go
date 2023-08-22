@@ -188,14 +188,14 @@ func (c *Converter) RunOnHTMLFragment(input string, w io.Writer) error {
 		return ErrNotHTML
 	}
 
-	if !strings.HasPrefix(input, "<html>") {
+	if !strings.HasPrefix(input, "<html") {
 		if !strings.HasPrefix(input, "<head>") {
 			if !strings.HasPrefix(input, "<body>") {
 				input = `<body>` + input + `</body>`
 			}
-			input = `<head></head>` + input
+			input = `<head><meta charset="UTF-8"></head>` + input
 		}
-		input = `<html>` + input + `</html>`
+		input = `<html lang="en">` + input + `</html>`
 	}
 
 	return c.Run(input, w)
